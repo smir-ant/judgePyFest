@@ -28,7 +28,7 @@
 ✅ Номинация 'Самое быстрое решение'.
 - nomFastest.py -> скрипт определяющий, кто смог решить задание максимально быстро
   - flow - поток(1 или 2)
-  - time - время равно дельте минимума среди submission_time - attempt_time только при status == "correct"
+  - time - время равно дельте минимума среди submission_time минус attempt_time только при status == "correct"
 
 > Создается <code>nomFastest.xlsx</code> - табличка с результатами обработки двух потоков. 
 
