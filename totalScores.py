@@ -1,72 +1,127 @@
+# импортируем библиотеку pandas
 import pandas as pd
 
-df = pd.read_excel("1_1.xlsx")  # читаем xlsx файл в датафрейм
+# определяем функцию для обработки 1_1.xlsx
+def process_1_1():
+    # читаем xlsx файл в датафрейм
+    df = pd.read_excel("1_1.xlsx")
 
-# создаем датафрейм с минимальным временем начала задания для каждого user_id
-df_start = df.groupby("user_id", as_index=False)["attempt_time"].min()
+    # сохраняем исходный датафрейм в отдельную переменную
+    df_original = df.copy()
 
-# удаляем строки с неправильными ответами
-df = df[df["status"] == "correct"]
+    # создаем столбец с баллами за каждый правильный ответ
+    df["score"] = df["status"].apply(lambda x: 1 if x == "correct" else 0)
 
-# группируем данные по user_id и step_id и выбираем минимальное время отправления ответа для каждой пары
-df = df.groupby(["user_id", "step_id"], as_index=False)[["submission_time", "first_name", "last_name"]].min()
+    # группируем данные по user_id и находим минимальное время начала задания и максимальное время отправки правильного ответа
+    df_min = df.groupby("user_id")["attempt_time"].min().reset_index()
+    df_max = df[df["status"] == "correct"].groupby("user_id")["submission_time"].max().reset_index()
 
-# создаем новый датафрейм с количеством решенных задач и максимальным временем отправления ответа для каждого user_id
-df_score = df.groupby("user_id", as_index=False).agg({"step_id": "count", "submission_time": "max", "first_name": "first", "last_name": "first"})
+    # объединяем два датафрейма по user_id
+    df_time = pd.merge(df_min, df_max, on="user_id")
 
-# объединяем df_score и df_start по user_id
-df_score = pd.merge(df_score, df_start, on="user_id")
+    # создаем столбец с потраченным временем на все задания
+    df_time["time_spent"] = df_time["submission_time"] - df_time["attempt_time"]
 
-# добавляем столбец с продолжительностью решения в исходном формате
-df_score["total_time"] = df_score["submission_time"] - df_score["attempt_time"]
+    # удаляем лишние столбцы
+    df_time = df_time.drop(["attempt_time", "submission_time"], axis=1)
 
-# удаляем лишние столбцы
-df_score = df_score.drop(columns=["submission_time", "attempt_time"])
+    # группируем данные по user_id и суммируем баллы
+    df_score = df.groupby("user_id")["score"].sum().reset_index()
 
-# добавляем столбец с flow равным 1
-df_score["flow"] = 1
+    # объединяем два датафрейма по user_id
+    df = pd.merge(df_score, df_time, on="user_id")
 
-# переименовываем столбцы
-df_score.columns = ["user_id", "score", "first_name", "last_name", "total_time", "flow"]
+    # добавляем колонки с фамилией и именем из исходного датафрейма
+    df = pd.merge(df, df_original[["user_id", "last_name", "first_name"]].drop_duplicates(), on="user_id")
 
-# читаем xlsx файл в датафрейм
-df2 = pd.read_excel("1_2.xlsx")
+    # сортируем данные по баллам и времени по возрастанию
+    df = df.sort_values(by=["score", "time_spent"], ascending=[False, True])
 
-# создаем датафрейм с минимальным временем начала задания для каждого user_id
-df_start2 = df2.groupby("user_id", as_index=False)["attempt_time"].min()
+    # добавляем колонку flow со значением 1
+    df["flow"] = 1
 
-# удаляем строки с неправильными ответами
-df2 = df2[df2["status"] == "correct"]
+    # добавляем окончание -1 к значениям user_id
+    df["user_id"] = df["user_id"].astype(str) + "-1"
 
-# группируем данные по user_id и step_id и выбираем минимальное время отправления ответа для каждой пары
-df2 = df2.groupby(["user_id", "step_id"], as_index=False)[["submission_time", "first_name", "last_name"]].min()
+    # выводим таблицу на экран без индексов слева и в нужном порядке колонок
+    print(df[["user_id", "score", "time_spent", "last_name", "first_name", "flow"]].to_string(index=False))
 
-# создаем новый датафрейм с количеством решенных задач и максимальным временем отправления ответа для каждого user_id
-df_score2 = df2.groupby("user_id", as_index=False).agg({"step_id": "count", "submission_time": "max", "first_name": "first", "last_name": "first"})
+    # записываем таблицу в файл rating1.xlsx
+    df.to_excel("rating1.xlsx", index=False)
 
-# объединяем df_score2 и df_start2 по user_id
-df_score2 = pd.merge(df_score2, df_start2, on="user_id")
+    # возвращаем таблицу из функции
+    return df
 
-# добавляем столбец с продолжительностью решения в исходном формате
-df_score2["total_time"] = df_score2["submission_time"] - df_score2["attempt_time"]
+# определяем функцию для обработки 1_2.xlsx
+def process_1_2():
+    # читаем xlsx файл в датафрейм
+    df = pd.read_excel("1_2.xlsx")
 
-# удаляем лишние столбцы
-df_score2 = df_score2.drop(columns=["submission_time", "attempt_time"])
+    # сохраняем исходный датафрейм в отдельную переменную
+    df_original = df.copy()
 
-# добавляем столбец с flow равным 2
-df_score2["flow"] = 2
+    # создаем столбец с баллами за каждый правильный ответ
+    df["score"] = df["status"].apply(lambda x: 1 if x == "correct" else 0)
 
-# переименовываем столбцы
-df_score2.columns = ["user_id", "score", "first_name", "last_name", "total_time", "flow"]
+    # группируем данные по user_id и находим минимальное время начала задания и максимальное время отправки правильного ответа
+    df_min = df.groupby("user_id")["attempt_time"].min().reset_index()
+    df_max = df[df["status"] == "correct"].groupby("user_id")["submission_time"].max().reset_index()
 
-# объединяем df_score и df_score2 в один датафрейм
-df_score = pd.concat([df_score, df_score2])
+    # объединяем два датафрейма по user_id
+    df_time = pd.merge(df_min, df_max, on="user_id")
 
-# меняем порядок столбцов
-df_score = df_score[["user_id", "flow", "score", "total_time", "first_name", "last_name"]]
+    # создаем столбец с потраченным временем на все задания
+    df_time["time_spent"] = df_time["submission_time"] - df_time["attempt_time"]
 
-# сортируем датафрейм по score в убывающем порядке, а при равенстве score - по total_time в возрастающем порядке
-df_score = df_score.sort_values(by=["score", "total_time"], ascending=[False, True])
+    # удаляем лишние столбцы
+    df_time = df_time.drop(["attempt_time", "submission_time"], axis=1)
 
-# выводим таблицу победителей без индекса
-print(df_score.to_string(index=False))
+    # группируем данные по user_id и суммируем баллы
+    df_score = df.groupby("user_id")["score"].sum().reset_index()
+
+    # объединяем два датафрейма по user_id
+    df = pd.merge(df_score, df_time, on="user_id")
+
+    # добавляем колонки с фамилией и именем из исходного датафрейма
+    df = pd.merge(df, df_original[["user_id", "last_name", "first_name"]].drop_duplicates(), on="user_id")
+
+    # сортируем данные по баллам и времени по возрастанию
+    df = df.sort_values(by=["score", "time_spent"], ascending=[False, True])
+
+    # добавляем колонку flow со значением 2
+    df["flow"] = 2
+
+    # добавляем окончание -2 к значениям user_id
+    df["user_id"] = df["user_id"].astype(str) + "-2"
+
+    # выводим таблицу на экран без индексов слева и в нужном порядке колонок
+    # print(df[["user_id", "score", "time_spent", "last_name", "first_name", "flow"]].to_string(index=False))
+
+    # записываем таблицу в файл rating2.xlsx
+    df.to_excel("rating2.xlsx", index=False)
+
+    # возвращаем таблицу из функции
+    return df
+
+# определяем функцию для объединения результатов двух таблиц
+def process_all():
+    # вызываем функцию для обработки 1_1.xlsx и сохраняем результат в переменную
+    df_1 = process_1_1()
+
+    # вызываем функцию для обработки 1_2.xlsx и сохраняем результат в переменную
+    df_2 = process_1_2()
+
+    # объединяем два результата в один датафрейм
+    df = pd.concat([df_1, df_2])
+
+    # сортируем данные по баллам и времени по возрастанию
+    df = df.sort_values(by=["score", "time_spent"], ascending=[False, True])
+
+    # выводим таблицу на экран без индексов слева и в нужном порядке колонок
+    # print(df[["user_id", "score", "time_spent", "last_name", "first_name", "flow"]].to_string(index=False))
+
+    # записываем таблицу в файл ratingAll.xlsx
+    df.to_excel("ratingAll.xlsx", index=False)
+
+# вызываем функцию для объединения результатов двух таблиц
+process_all()
