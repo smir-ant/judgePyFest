@@ -1,5 +1,10 @@
-# импортируем pandas
 import pandas as pd
+import glob
+
+# Создаем список файлов с расширением xlsx в заданной директории
+# path = "1year"  # ❗❗❗ЕСЛИ ГОД ❗❗❗
+path = "05year"  # ❗❗❗ ЕСЛИ ПОЛ ГОДА ❗❗❗
+filenames = glob.glob(path + "/*.xlsx")
 
 # функция для обработки данных из файла
 def process_data(filename):
@@ -76,35 +81,35 @@ def process_data(filename):
     # возвращаем обработанный dataframe
     return df
 
-# обрабатываем данные из первого файла "1_1.xlsx"
-df1 = process_data("1_1.xlsx")
+# Создаем пустой список для хранения DataFrame
+dfs = []
 
-# добавляем приписку "-1" к значениям user_id в первом dataframe 
-df1["user_id"] = df1["user_id"].astype(str) + "-1"
+# Проходим по списку файлов в цикле
+for filename in filenames:
+    # Обрабатываем данные из текущего файла
+    df = process_data(filename)
 
-# добавляем колонку flow со значением "1" в первом dataframe 
-df1["flow"] = 1
+    # Добавляем столбец flow и приписку к user_id в зависимости от имени файла
+    if filename.split('\\')[-1] == "1_1.xlsx":
+        df["flow"] = "1"
+        df["user_id"] = df["user_id"].astype(str) + "-1"
+    elif filename.split('\\')[-1] == "1_2.xlsx":
+        df["flow"] = "2"
+        df["user_id"] = df["user_id"].astype(str) + "-2"
+    # Добавляем обработанный dataframe в список результатов
+    dfs.append(df)
 
-# обрабатываем данные из второго файла "1_2.xlsx"
-df2 = process_data("1_2.xlsx")
-
-# добавляем приписку "-2" к значениям user_id во втором dataframe 
-df2["user_id"] = df2["user_id"].astype(str) + "-2"
-
-# добавляем колонку flow со значением "2" во втором dataframe 
-df2["flow"] = 2
-
-# соединяем два dataframe в один
-df = pd.concat([df1, df2])
+# Соединяем результаты из всех файлов в один dataframe
+df = pd.concat(dfs, ignore_index=True)
 
 # сортируем общий dataframe по убыванию по значениям колонки streak, а при равенстве по убыванию по значениям колонки time_for_streak
-df = df.sort_values(by=["streak", "time_for_streak"], ascending=False)
+df = df.sort_values(by=["streak", "time_for_streak"], ascending=[False, True])
 
 # убираем индекс слева
 df = df.reset_index(drop=True)
 
-# сохраняем итоговый dataframe в файл "nomStreak.xlsx"
-df.to_excel("nomStreak.xlsx", index=False)
+print(df)
 
-# выводим сообщение об успешном сохранении
-print("Итоговый dataframe успешно сохранен в файл 'nomStreak.xlsx'")
+# сохраняем итоговый dataframe в файл "nomStreak.xlsx"
+df.to_excel(f"{path}_nomStreak.xlsx", index=False)
+

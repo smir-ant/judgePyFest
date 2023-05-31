@@ -1,10 +1,16 @@
-# Импортируем библиотеку pandas
+# Импортируем библиотеки pandas и glob
 import pandas as pd
+import glob
+
+# Создаем список файлов с расширением xlsx в заданной директории
+# path = "1year"  # ❗❗❗ЕСЛИ ГОД ❗❗❗
+path = "05year"  # ❗❗❗ ЕСЛИ ПОЛ ГОДА ❗❗❗
+filenames = glob.glob(path + "/*.xlsx")
 
 # Определяем функцию для обработки данных из файла excel
-def process_data(file_name):
+def process_data(filename):
     # Читаем данные из файла без указания листа
-    df = pd.read_excel(file_name)
+    df = pd.read_excel(filename)
 
     # Фильтруем строки, где status равен "correct"
     df = df[df["status"] == "correct"]
@@ -24,23 +30,37 @@ def process_data(file_name):
     # Возвращаем обработанный dataframe
     return df
 
-# Обрабатываем данные из файлов 1_1.xlsx и 1_2.xlsx
-df1 = process_data("1_1.xlsx")
-df2 = process_data("1_2.xlsx")
+# Создаем пустой список для хранения DataFrame
+dfs = []
 
-# Добавляем приписки в конец user_id в зависимости от файла
-df1 = df1.assign(user_id=df1["user_id"].astype(str) + "-1")
-df2 = df2.assign(user_id=df2["user_id"].astype(str) + "-2")
+# Проходим по списку файлов в цикле
+for filename in filenames:
+    # Обрабатываем данные из текущего файла
+    df = process_data(filename)
 
-# Добавляем столбец flow в зависимости от файла
-df1 = df1.assign(flow="1")
-df2 = df2.assign(flow="2")
+    # Добавляем столбец flow и приписку к user_id в зависимости от имени файла
+    if filename.split('\\')[-1] == "1_1.xlsx":
+        df["flow"] = "1"
+        df["user_id"] = df["user_id"].astype(str) + "-1"
+    elif filename.split('\\')[-1] == "1_2.xlsx":
+        df["flow"] = "2"
+        df["user_id"] = df["user_id"].astype(str) + "-2"
+    # # Добавляем приписки в конец user_id в зависимости от номера файла
+    # df = df.assign(user_id=df["user_id"].astype(str) + "-" + filename.split(".")[0][-1])  # дописываем -1 или -2 в конце
 
-# Соединяем результаты из двух файлов в один dataframe
-df = pd.concat([df1, df2], ignore_index=True)
+    # # Добавляем столбец flow в зависимости от номера файла
+    # df = df.assign(flow=filename.split(".")[0][-1])
+
+    # Добавляем обработанный dataframe в список результатов
+    dfs.append(df)
+
+# Соединяем результаты из всех файлов в один dataframe
+df = pd.concat(dfs, ignore_index=True)
 
 # Сортируем итоговый dataframe по колонке "time" по возрастанию
 df = df.sort_values(by="time")
 
+print(df)
+
 # Выводим результат в файл nomFastest.xlsx без индексов слева
-df.to_excel("nomFastest.xlsx", index=False)
+df.to_excel(f"{path}_nomFastest.xlsx", index=False)
