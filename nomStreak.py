@@ -7,10 +7,7 @@ def one_click(puti="05year"):
     # path = "1year"  # ❗❗❗ЕСЛИ ГОД ❗❗❗
     # path = "05year"  # ❗❗❗ ЕСЛИ ПОЛ ГОДА ❗❗❗
 
-    
     filenames = glob.glob(path + "/*.xlsx")
-
-
 
     # функция для обработки данных из файла
     def process_data(filename):
@@ -118,5 +115,4 @@ def one_click(puti="05year"):
 
     # сохраняем итоговый dataframe в файл "nomStreak.xlsx"
     df.to_excel(f"{path}_nomStreak.xlsx", index=False)
-    print("===================================")
 
